@@ -1,0 +1,16 @@
+<form method="post">
+    <fieldset>
+        <dt>Name:</dt>
+        <dd>@Model.Name</dd>
+        <dt>Date Added:</dt>
+        <dd>@Model.DateAdded</dd>
+        <br />
+        <br />
+        Please edit your message:
+        <br />
+        <textarea name="Message" rows="10" cols="40">@Model.Message</textarea>
+        <br />
+        <br />
+        <input type="submit" value="Submit Entry" />
+    </fieldset>
+</form>

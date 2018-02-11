@@ -1,0 +1,141 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using System.Data.Entity;
+
+namespace Guestbook.Controllers
+{
+    [Authorize]
+    public class GuestbookController : Controller
+    {
+        //
+        // GET: /Guestbook/
+        private Guestbook.Models.GuestbookContext _db = new Guestbook.Models.GuestbookContext();
+       [AllowAnonymous]
+        public ActionResult Index()
+        {
+            var mostRecentEntries = (from entry in _db.Entries
+                                     orderby entry.DateAdded descending
+                                     select entry).Take(20);
+            ViewBag.Entries = mostRecentEntries.ToList();
+            return View();
+        }
+
+        public ActionResult Create()
+        {
+            return View();
+        }
+        
+        [AllowAnonymous]
+        public ViewResult Show(int id)
+        {
+            var entry = _db.Entries.Find(id);
+            bool hasPermission = User.Identity.Name == entry.Name;
+            ViewData["hasPermission"] = hasPermission;
+            return View(entry);
+        }
+        [AllowAnonymous]
+        public ActionResult CommentsByDate(string userDate)
+        {
+            DateTime myDate = new DateTime();
+            DateTime myUpToDate = new DateTime();
+            if (!string.IsNullOrEmpty(userDate))
+            {
+                myDate = DateTime.Parse(userDate.Replace("!",":"));
+
+                myUpToDate = myDate.AddDays(1);
+            }
+            var entriesPerDate =
+                (from entry in _db.Entries
+                 where entry.DateAdded <= myUpToDate
+                 orderby entry.Name descending
+                 select entry).Take(20);
+            ViewBag.Entries = entriesPerDate.ToList();
+            return View();
+        }
+        [AllowAnonymous]
+        public ActionResult CommentSummary()
+        {
+            var entries = from entry in _db.Entries
+                          group entry by entry.Name
+                              into groupedByName
+                              orderby groupedByName.Count()
+                              descending
+                              select new Guestbook.Models.CommentSummary
+                                  {
+                                      NumberOfComments = groupedByName.Count(),
+                                      UserName = groupedByName.Key
+                                  };
+            return View(entries.ToList());
+        }
+        [AllowAnonymous]
+        public ActionResult Comments(string userName)
+        {
+            var mostRecentEntriesPerUser =
+                (from entry in _db.Entries
+                 where entry.Name == userName
+                 orderby entry.DateAdded descending
+                 select entry).Take(20);
+            ViewBag.Entries = mostRecentEntriesPerUser.ToList();
+            ViewBag.UserName = userName;
+            return View();
+        }
+
+        public ActionResult Edit(int id)
+        {
+            var entry = _db.Entries.Find(id);
+            if (User.Identity.Name == entry.Name)
+                return View(entry);
+            else
+                return RedirectToAction("Index");
+        }
+
+        public ActionResult Delete(int? id)
+        {
+            var entry = _db.Entries.Find(id);
+            if (User.Identity.Name == entry.Name)
+                return View(entry);
+            else
+                return RedirectToAction("Index");
+        }
+
+    [HttpPost]
+        public ActionResult Create(Guestbook.Models.GuestbookEntry entry)
+        {
+            entry.DateAdded = DateTime.Now;
+            _db.Entries.Add(entry);
+            _db.SaveChanges();
+            return RedirectToAction("Index");
+        }
+
+    [HttpPost]
+        public ActionResult Edit(Guestbook.Models.GuestbookEntry entry)
+    {
+        var editEntry = _db.Entries.Find(entry.Id);
+        if (User.Identity.Name == editEntry.Name)
+        {
+            editEntry.Message = entry.Message;
+            _db.Entry(editEntry).State = EntityState.Modified;
+            _db.SaveChanges();
+        }
+        return RedirectToAction("Index");
+    }
+
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public ActionResult
+    DeleteConfirmed(Guestbook.Models.GuestbookEntry entry)
+    {
+        var editEntry = _db.Entries.Find(entry.Id);
+        if (User.Identity.Name == editEntry.Name)
+        {
+            _db.Entries.Remove(editEntry);
+            _db.SaveChanges();
+        }
+        return RedirectToAction("Index");
+    }
+
+    }
+}

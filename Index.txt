@@ -1,0 +1,20 @@
+@{
+    ViewBag.Title = "List";
+}
+<h2> My Guestbook Entries</h2>
+
+<p> <a href="/Guestbook/Create">Add a new entry</a></p>
+
+@foreach (var entry in ViewBag.Entries)
+{ 
+    
+    <section class="contact">
+        <header>
+            <h3>@Html.ActionLink((string)entry.Message, "Show" + "/" + (string)entry.Id.ToString())</h3>
+        </header>
+        <p>
+            Posted by >@Html.ActionLink((string)entry.Name, "Comments" + "/" + (string)entry.Name) 
+            on @Html.ActionLink((string)entry.DateAdded.ToString(), "CommentsByDate", new { userDate = entry.DateAdded.ToString("dd-MM-yyyy")})
+        </p>
+    </section>
+}
